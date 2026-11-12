@@ -11,6 +11,7 @@ Tool tự động chấm công cho hệ thống MISA AMIS với khả năng ch�
 - ✅ Chống block với token mã hóa
 - ✅ **Random device headers** - Tự động đổi thiết bị iOS để tránh bị phát hiện
 - ✅ **Random thời gian chấm công** - Không chấm đúng giờ cố định, tránh pattern
+- ✅ **Thông báo Telegram** - Nhận thông báo ngay khi chấm công thành công/thất bại
 - ✅ Hỗ trợ đa nền tảng (Windows, macOS, Linux)
 
 ## 📋 Yêu cầu hệ thống
@@ -103,9 +104,60 @@ MISA_SECRET_KEY=UPQXZRDKNZY2OJJZ  # Secret key từ bước 1
 TARGET_GPS_NAME=VP Trà Khúc       # Tên địa điểm chấm công
 TARGET_LATITUDE=10.805944         # Vĩ độ
 TARGET_LONGITUDE=106.665083       # Kinh độ
+
+# Telegram Notification (Tùy chọn - Bỏ trống nếu không cần)
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11  # Bot token
+TELEGRAM_CHAT_ID=123456789        # Chat ID của bạn
 ```
 
-### 3. Lấy tọa độ GPS
+### 3. Cấu hình Telegram (Tùy chọn)
+
+Nếu muốn nhận thông báo chấm công qua Telegram, làm theo các bước sau:
+
+#### Bước 1: Tạo Telegram Bot
+
+1. Mở Telegram, tìm và chat với **@BotFather**
+2. Gửi lệnh: `/newbot`
+3. Đặt tên bot (vd: `My Checkin Bot`)
+4. Đặt username bot (vd: `my_checkin_bot`)
+5. BotFather sẽ trả về **Bot Token** dạng: `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`
+6. Copy token này vào `TELEGRAM_BOT_TOKEN` trong file `.env`
+
+#### Bước 2: Lấy Chat ID
+
+**Cách 1: Dùng bot IDBot (Dễ nhất)**
+1. Tìm và start chat với **@userinfobot** trên Telegram
+2. Bot sẽ trả về Chat ID của bạn (dạng: `123456789`)
+3. Copy vào `TELEGRAM_CHAT_ID` trong file `.env`
+
+**Cách 2: Dùng API**
+1. Gửi tin nhắn bất kỳ cho bot của bạn (bot bạn vừa tạo ở Bước 1)
+2. Truy cập URL sau (thay `YOUR_BOT_TOKEN`):
+   ```
+   https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates
+   ```
+3. Tìm `"chat":{"id":123456789}` trong JSON response
+4. Copy số `123456789` vào `TELEGRAM_CHAT_ID`
+
+#### Bước 3: Test thông báo
+
+Sau khi điền xong, chạy thử tool để kiểm tra thông báo Telegram:
+```bash
+python3 auto_checkin.py
+```
+
+Nếu cấu hình đúng, bạn sẽ nhận được thông báo dạng:
+```
+✅ Chấm công thành công!
+
+⏰ Thời gian: 2024-01-15 08:30:00
+📍 Vị trí: VP Trà Khúc
+🏢 Ca làm: Ca sáng
+```
+
+**Lưu ý:** Nếu không cần thông báo Telegram, bỏ trống hoặc xóa 2 dòng `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID` trong file `.env`.
+
+### 4. Lấy tọa độ GPS
 
 **Cách 1: Dùng Google Maps**
 1. Truy cập https://www.google.com/maps

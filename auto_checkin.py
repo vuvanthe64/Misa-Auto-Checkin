@@ -24,6 +24,10 @@ TARGET_GPS_NAME = os.getenv("TARGET_GPS_NAME")
 TARGET_LATITUDE = float(os.getenv("TARGET_LATITUDE", 0.0))
 TARGET_LONGITUDE = float(os.getenv("TARGET_LONGITUDE", 0.0))
 
+# Telegram notification (optional)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
 session = requests.Session()
 
 # Pool các thiết bị iOS phổ biến để random
@@ -89,6 +93,26 @@ session.headers.update(get_random_device_headers())
 
 user_id = ""
 
+def send_telegram_notification(message):
+    """Gửi thông báo qua Telegram (nếu đã cấu hình)"""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return  # Không cấu hình Telegram, bỏ qua
+
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": message,
+            "parse_mode": "HTML"
+        }
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            print("[+] Đã gửi thông báo Telegram thành công!")
+        else:
+            print(f"[-] Lỗi gửi Telegram: {response.status_code}")
+    except Exception as e:
+        print(f"[-] Không thể gửi Telegram: {str(e)}")
+
 def generate_response_token(challenge_token):
     salt_suffix = "_MISA-AMIS-TK-PROD-2025-x9VbN4mK8tL2wPc7YqH5RgF3JzS6aWdE"
     raw_token = f"{challenge_token}{salt_suffix}"
@@ -139,12 +163,32 @@ def do_checkin(shift_info):
                 print(f"    Vị trí: {info.get('GPSName')}")
                 print(f"    Ca làm: {info.get('WorkingShiftName')}")
                 print("[========================================================]")
+
+                # Gửi thông báo Telegram
+                telegram_msg = (
+                    f"✅ <b>Chấm công thành công!</b>\n\n"
+                    f"⏰ Thời gian: {info.get('CheckTime')}\n"
+                    f"📍 Vị trí: {info.get('GPSName')}\n"
+                    f"🏢 Ca làm: {info.get('WorkingShiftName')}"
+                )
+                send_telegram_notification(telegram_msg)
             else:
-                print("[-] Bị từ chối chấm công:", data.get("UserMessage"))
+                error_msg = data.get("UserMessage", "Không rõ lỗi")
+                print("[-] Bị từ chối chấm công:", error_msg)
+
+                # Gửi thông báo lỗi qua Telegram
+                telegram_msg = (
+                    f"❌ <b>Chấm công thất bại!</b>\n\n"
+                    f"Lỗi: {error_msg}"
+                )
+                send_telegram_notification(telegram_msg)
         else:
             print("[-] Lỗi HTTP chấm công:", res.status_code, res.text)
+            send_telegram_notification(f"❌ Lỗi HTTP: {res.status_code}")
     except Exception as e:
-        print("[-] Lỗi mạng Bước 4:", str(e))
+        error_str = str(e)
+        print("[-] Lỗi mạng Bước 4:", error_str)
+        send_telegram_notification(f"❌ Lỗi mạng: {error_str}")
 
 def process_step_3_and_4():
     print("\n[*] BƯỚC 3: Đang lấy thông tin ca làm việc (Shift ID & Token)...")
